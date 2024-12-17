@@ -17,29 +17,24 @@ public class TokenGenerator : ITokenGenerator
     
     public string GenerateToken(Accounts account)
     {
-        if (account == null)
-            throw new ArgumentNullException(nameof(account));
-        
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, account.email), 
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), 
-            new Claim(ClaimTypes.NameIdentifier, account.id.ToString()), 
-            new Claim(ClaimTypes.Email, account.email),
-            new Claim(ClaimTypes.Role, "User") 
+            new Claim(JwtRegisteredClaimNames.Sub, account.email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("email-confirmation", "true") // Пользовательский claim для подтверждения email
         };
-        
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        
+
         var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"], 
+            issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
-            claims: claims, 
-            expires: DateTime.UtcNow.AddHours(1), 
-            signingCredentials: creds 
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(24),
+            signingCredentials: creds
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token); 
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
