@@ -24,7 +24,7 @@ public class TokenGenerator : ITokenGenerator
         {
             new Claim(JwtRegisteredClaimNames.Sub, account.email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("email-confirmation", "true") // Пользовательский claim для подтверждения email
+            new Claim("email-confirmation", "true") 
         };
 
         var token = new JwtSecurityToken(

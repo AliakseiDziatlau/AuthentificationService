@@ -26,13 +26,14 @@ public class AccountsRepository : IAccountsRepository
 
     public async Task AddAsync(Accounts account)
     {
-        await _context.Accounts.AddAsync(account);    
+        await _context.Accounts.AddAsync(account); 
+        await _context.SaveChangesAsync(); 
     }
 
     public async Task UpdateAsync(Accounts account)
     {
         _context.Accounts.Update(account);
-        await Task.CompletedTask;
+        await _context.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(int id)
@@ -41,6 +42,7 @@ public class AccountsRepository : IAccountsRepository
         if (account != null)
         {
             _context.Accounts.Remove(account);
+            await _context.SaveChangesAsync();
         }
     }
 }

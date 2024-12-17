@@ -52,15 +52,14 @@ public class AuthService : IAuthService
         };
 
         await _accountsRepository.AddAsync(newUser);
-        
         var token = Guid.NewGuid().ToString();
-        
         _cache.Set(token, registerDTO.Email, TimeSpan.FromHours(24));
-
+        
         var authentificationServicePath = _configuration["AuthentificationServicePath"];
-        var confirmationLink = $"{authentificationServicePath}/api/auth/confirm-email?token={token}";
+        var confirmationLink = $"{authentificationServicePath}/api/auth/confirm-email?token={token}&email={registerDTO.Email}";
+        
         await _emailService.SendEmailAsync(registerDTO.Email, "Confirm Your Email", 
-            $"Click here to confirm your email: {confirmationLink}");
+            $"Please confirm your email by clicking on the link: <a href='{confirmationLink}'>{confirmationLink}</a>");
     }
     
     public async Task<string> LoginUserAsync(LoginDTO loginDTO)
@@ -87,13 +86,10 @@ public class AuthService : IAuthService
         var user = await _accountsRepository.GetByEmailAsync(email);
         if (user == null)
             throw new Exception("User not found.");
-
         
         user.isEmailVerified = true;
         user.updatedAt = DateTime.UtcNow;
-
         await _accountsRepository.UpdateAsync(user);
-        
         _cache.Remove(token);
     }
 }
