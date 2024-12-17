@@ -24,10 +24,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Infrastructure\Interfaces\" />
-      <Folder Include="Infrastructure\Persistence\" />
-      <Folder Include="Infrastructure\Repositories\" />
-      <Folder Include="Infrastructure\Services\" />
       <Folder Include="Presentation\Controllers\" />
     </ItemGroup>
 
