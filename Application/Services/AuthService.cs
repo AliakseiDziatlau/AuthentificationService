@@ -33,8 +33,7 @@ public class AuthService : IAuthService
         _configuration = configuration;
         _cache = cache;
     }
-
-    // Регистрация пользователя
+    
     public async Task RegisterUserAsync(RegisterDTO registerDTO)
     {
         var existingUser = await _accountsRepository.GetByEmailAsync(registerDTO.Email);
@@ -53,15 +52,13 @@ public class AuthService : IAuthService
         };
 
         await _accountsRepository.AddAsync(newUser);
-
-        // Генерация токена
+        
         var token = Guid.NewGuid().ToString();
-
-        // Сохранение токена в MemoryCache
+        
         _cache.Set(token, registerDTO.Email, TimeSpan.FromHours(24));
 
-        // Отправка токена по email
-        var confirmationLink = $"https://yourapp.com/api/auth/confirm-email?token={token}";
+        var authentificationServicePath = _configuration["AuthentificationServicePath"];
+        var confirmationLink = $"{authentificationServicePath}/api/auth/confirm-email?token={token}";
         await _emailService.SendEmailAsync(registerDTO.Email, "Confirm Your Email", 
             $"Click here to confirm your email: {confirmationLink}");
     }
@@ -80,25 +77,23 @@ public class AuthService : IAuthService
     
     public async Task ConfirmEmailAsync(string token, string email)
     {
-        // Проверяем наличие токена в MemoryCache
+        
         if (!_cache.TryGetValue(token, out string cachedEmail))
             throw new Exception("Invalid or expired token.");
 
         if (cachedEmail != email)
             throw new Exception("Invalid email for this token.");
-
-        // Получаем пользователя по email
+        
         var user = await _accountsRepository.GetByEmailAsync(email);
         if (user == null)
             throw new Exception("User not found.");
 
-        // Обновляем статус подтверждения email
+        
         user.isEmailVerified = true;
         user.updatedAt = DateTime.UtcNow;
 
         await _accountsRepository.UpdateAsync(user);
-
-        // Удаляем токен из MemoryCache
+        
         _cache.Remove(token);
     }
 }
