@@ -1,32 +1,46 @@
 using AuthentificationService.Core.Entities;
 using AuthentificationService.Core.Interfaces;
+using AuthentificationService.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace AuthentificationService.Infrastructure.Repositories;
 
 public class AccountsRepository : IAccountsRepository
 {
-    public Task<Accounts> GetByIdAsync(string id)
+    private readonly AppDbContext _context;
+
+    public AccountsRepository(AppDbContext context)
     {
-        throw new NotImplementedException();
+        _context = context;
     }
 
-    public Task<Accounts> GetByEmailAsync(string email)
+    public async Task<Accounts> GetByIdAsync(int id)
     {
-        throw new NotImplementedException();
+        return await _context.Accounts.FirstOrDefaultAsync(a => a.id == id);
     }
 
-    public Task AddAsync(Accounts account)
+    public async Task<Accounts> GetByEmailAsync(string email)
     {
-        throw new NotImplementedException();
+        return await _context.Accounts.FirstOrDefaultAsync(a => a.email == email);
     }
 
-    public Task UpdateAsync(Accounts account)
+    public async Task AddAsync(Accounts account)
     {
-        throw new NotImplementedException();
+        await _context.Accounts.AddAsync(account);    
     }
 
-    public Task DeleteAsync(int id)
+    public async Task UpdateAsync(Accounts account)
     {
-        throw new NotImplementedException();
+        _context.Accounts.Update(account);
+        await Task.CompletedTask;
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var account = await GetByIdAsync(id);
+        if (account != null)
+        {
+            _context.Accounts.Remove(account);
+        }
     }
 }
