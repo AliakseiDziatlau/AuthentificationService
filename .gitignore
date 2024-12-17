@@ -1,9 +1,0 @@
-.idea/
-*.DotSettings.user
-.DS_Store
-bin/
-obj/
-*.log
-*.user
-!docker-compose.yml
-!docker-compose.override.yml
