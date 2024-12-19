@@ -39,19 +39,33 @@ public class AuthService : IAuthService
         var existingUser = await _accountsRepository.GetByEmailAsync(registerDTO.Email);
         if (existingUser != null)
             throw new Exception("User already exists.");
-
+        
+        var validRoles = new[] { "Doctor", "Receptionist", "Patient" };
+        if (!validRoles.Contains(registerDTO.Role))
+            throw new Exception("Invalid role.");
+        
         var passwordHash = _passwordHasher.HashPassword(registerDTO.Password);
-
+        
+        var roleId = registerDTO.Role switch
+        {
+            "Doctor" => 0,
+            "Receptionist" => 1,
+            "Patient" => 2,
+            _ => throw new Exception("Invalid role.")
+        };
+        
         var newUser = new Accounts
         {
             email = registerDTO.Email,
             passwordHash = passwordHash,
             phoneNumber = registerDTO.PhoneNumber,
             isEmailVerified = false,
-            createdAt = DateTime.UtcNow
+            createdAt = DateTime.UtcNow,
+            RoleId = roleId 
         };
 
         await _accountsRepository.AddAsync(newUser);
+        
         var token = Guid.NewGuid().ToString();
         _cache.Set(token, registerDTO.Email, TimeSpan.FromHours(24));
         
@@ -60,6 +74,32 @@ public class AuthService : IAuthService
         
         await _emailService.SendEmailAsync(registerDTO.Email, "Confirm Your Email", 
             $"Please confirm your email by clicking on the link: <a href='{confirmationLink}'>{confirmationLink}</a>");
+        
+        
+        // var existingUser = await _accountsRepository.GetByEmailAsync(registerDTO.Email);
+        // if (existingUser != null)
+        //     throw new Exception("User already exists.");
+        //
+        // var passwordHash = _passwordHasher.HashPassword(registerDTO.Password);
+        //
+        // var newUser = new Accounts
+        // {
+        //     email = registerDTO.Email,
+        //     passwordHash = passwordHash,
+        //     phoneNumber = registerDTO.PhoneNumber,
+        //     isEmailVerified = false,
+        //     createdAt = DateTime.UtcNow
+        // };
+        //
+        // await _accountsRepository.AddAsync(newUser);
+        // var token = Guid.NewGuid().ToString();
+        // _cache.Set(token, registerDTO.Email, TimeSpan.FromHours(24));
+        //
+        // var authentificationServicePath = _configuration["AuthentificationServicePath"];
+        // var confirmationLink = $"{authentificationServicePath}/api/auth/confirm-email?token={token}&email={registerDTO.Email}";
+        //
+        // await _emailService.SendEmailAsync(registerDTO.Email, "Confirm Your Email", 
+        //     $"Please confirm your email by clicking on the link: <a href='{confirmationLink}'>{confirmationLink}</a>");
     }
     
     

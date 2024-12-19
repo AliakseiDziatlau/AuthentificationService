@@ -27,6 +27,13 @@ public class TokenGenerator : ITokenGenerator
         {
             new Claim(JwtRegisteredClaimNames.Sub, account.email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("role", account.RoleId switch
+            {
+                0 => "Doctor",
+                1 => "Receptionist",
+                2 => "Patient",
+                _ => "Unknown"
+            }),
             new Claim("email-confirmation", "true") 
         };
 

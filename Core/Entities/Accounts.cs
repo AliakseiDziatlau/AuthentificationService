@@ -19,4 +19,6 @@ public class Accounts
     public DateTime createdAt { get; set; } = DateTime.UtcNow;
     public int? updatedBy { get; set; }
     public DateTime? updatedAt { get; set; } = DateTime.UtcNow;
+    
+    public int RoleId { get; set; }
 }
