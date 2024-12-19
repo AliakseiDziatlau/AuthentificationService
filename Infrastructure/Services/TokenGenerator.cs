@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using AuthentificationService.Core.Entities;
+using AuthentificationService.Core.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 
@@ -10,12 +11,12 @@ namespace AuthentificationService.Infrastructure.Services;
 public class TokenGenerator : ITokenGenerator
 {
     private readonly IConfiguration _configuration;
-    private readonly IMemoryCache _cache;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
 
-    public TokenGenerator(IConfiguration configuration, IMemoryCache cache)
+    public TokenGenerator(IConfiguration configuration, IRefreshTokenRepository refreshTokenRepository)
     {
         _configuration = configuration;
-        _cache = cache;
+        _refreshTokenRepository = refreshTokenRepository;
     }
     
     public string GenerateAccessToken(Accounts account)
@@ -48,10 +49,18 @@ public class TokenGenerator : ITokenGenerator
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
     
-    public string GenerateAndStoreRefreshToken(string email)
+    public async Task<string> GenerateAndStoreRefreshToken(int accountId)
     {
         var refreshToken = Guid.NewGuid().ToString();
-        _cache.Set(refreshToken, email, TimeSpan.FromDays(7)); 
+
+        var newRefreshToken = new RefreshTokens
+        {
+            Token = refreshToken,
+            ExpiryDate = DateTime.UtcNow.AddDays(7),
+            AccountId = accountId
+        };
+
+        await _refreshTokenRepository.AddAsync(newRefreshToken);
         return refreshToken;
     }
 }

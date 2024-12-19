@@ -18,13 +18,15 @@ public class AuthService : IAuthService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IConfiguration _configuration;
     private readonly IMemoryCache _cache;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
 
     public AuthService(IAccountsRepository accountsRepository,
                        ITokenGenerator tokenGenerator,
                        IEmailService emailService,
                        IPasswordHasher passwordHasher,
                        IConfiguration configuration,
-                       IMemoryCache cache)
+                       IMemoryCache cache,
+                       IRefreshTokenRepository refreshTokenRepository)
     {
         _accountsRepository = accountsRepository;
         _tokenGenerator = tokenGenerator;
@@ -32,6 +34,7 @@ public class AuthService : IAuthService
         _passwordHasher = passwordHasher;
         _configuration = configuration;
         _cache = cache;
+        _refreshTokenRepository = refreshTokenRepository;
     }
     
     public async Task RegisterUserAsync(RegisterDTO registerDTO)
@@ -74,32 +77,6 @@ public class AuthService : IAuthService
         
         await _emailService.SendEmailAsync(registerDTO.Email, "Confirm Your Email", 
             $"Please confirm your email by clicking on the link: <a href='{confirmationLink}'>{confirmationLink}</a>");
-        
-        
-        // var existingUser = await _accountsRepository.GetByEmailAsync(registerDTO.Email);
-        // if (existingUser != null)
-        //     throw new Exception("User already exists.");
-        //
-        // var passwordHash = _passwordHasher.HashPassword(registerDTO.Password);
-        //
-        // var newUser = new Accounts
-        // {
-        //     email = registerDTO.Email,
-        //     passwordHash = passwordHash,
-        //     phoneNumber = registerDTO.PhoneNumber,
-        //     isEmailVerified = false,
-        //     createdAt = DateTime.UtcNow
-        // };
-        //
-        // await _accountsRepository.AddAsync(newUser);
-        // var token = Guid.NewGuid().ToString();
-        // _cache.Set(token, registerDTO.Email, TimeSpan.FromHours(24));
-        //
-        // var authentificationServicePath = _configuration["AuthentificationServicePath"];
-        // var confirmationLink = $"{authentificationServicePath}/api/auth/confirm-email?token={token}&email={registerDTO.Email}";
-        //
-        // await _emailService.SendEmailAsync(registerDTO.Email, "Confirm Your Email", 
-        //     $"Please confirm your email by clicking on the link: <a href='{confirmationLink}'>{confirmationLink}</a>");
     }
     
     
@@ -113,7 +90,7 @@ public class AuthService : IAuthService
             throw new Exception("Email is not verified.");
         
         var accessToken = _tokenGenerator.GenerateAccessToken(user);
-        var refreshToken = _tokenGenerator.GenerateAndStoreRefreshToken(user.email);
+        var refreshToken = await _tokenGenerator.GenerateAndStoreRefreshToken(user.id);
 
         return (AccessToken: accessToken, RefreshToken: refreshToken);
     }
@@ -138,16 +115,17 @@ public class AuthService : IAuthService
     
     public async Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken)
     {
-        if (!_cache.TryGetValue(refreshToken, out string email))
+        var storedRefreshToken = await _refreshTokenRepository.GetByTokenAsync(refreshToken);
+        if (storedRefreshToken == null || storedRefreshToken.ExpiryDate < DateTime.UtcNow)
             throw new Exception("Invalid or expired refresh token.");
-
-        var user = await _accountsRepository.GetByEmailAsync(email);
+        
+        var user = await _accountsRepository.GetByIdAsync(storedRefreshToken.AccountId);
         if (user == null)
             throw new Exception("User not found.");
         
         var accessToken = _tokenGenerator.GenerateAccessToken(user);
-        var newRefreshToken = _tokenGenerator.GenerateAndStoreRefreshToken(email);
-        _cache.Remove(refreshToken);
+        var newRefreshToken = await _tokenGenerator.GenerateAndStoreRefreshToken(user.id);
+        await _refreshTokenRepository.DeleteAsync(storedRefreshToken);
 
         return (AccessToken: accessToken, RefreshToken: newRefreshToken);
     }
