@@ -32,7 +32,22 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDTO dto)
     {
-        var token = await _authService.LoginUserAsync(dto);
-        return Ok(new {Token = token});
+        var tokens = await _authService.LoginUserAsync(dto);
+        return Ok(new 
+        { 
+            AccessToken = tokens.AccessToken,
+            RefreshToken = tokens.RefreshToken
+        });
+    }
+    
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDTO request)
+    {
+        var tokens = await _authService.RefreshTokenAsync(request.refreshToken);
+        return Ok(new 
+        { 
+            AccessToken = tokens.AccessToken,
+            RefreshToken = tokens.RefreshToken
+        });
     }
 }

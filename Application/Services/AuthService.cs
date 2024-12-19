@@ -62,7 +62,8 @@ public class AuthService : IAuthService
             $"Please confirm your email by clicking on the link: <a href='{confirmationLink}'>{confirmationLink}</a>");
     }
     
-    public async Task<string> LoginUserAsync(LoginDTO loginDTO)
+    
+    public async Task<(string AccessToken, string RefreshToken)> LoginUserAsync(LoginDTO loginDTO)
     {
         var user = await _accountsRepository.GetByEmailAsync(loginDTO.Email);
         if (user == null || !_passwordHasher.VerifyPassword(loginDTO.Password, user.passwordHash))
@@ -71,12 +72,14 @@ public class AuthService : IAuthService
         if (!user.isEmailVerified)
             throw new Exception("Email is not verified.");
         
-        return _tokenGenerator.GenerateToken(user);
+        var accessToken = _tokenGenerator.GenerateAccessToken(user);
+        var refreshToken = _tokenGenerator.GenerateAndStoreRefreshToken(user.email);
+
+        return (AccessToken: accessToken, RefreshToken: refreshToken);
     }
     
     public async Task ConfirmEmailAsync(string token, string email)
     {
-        
         if (!_cache.TryGetValue(token, out string cachedEmail))
             throw new Exception("Invalid or expired token.");
 
@@ -91,5 +94,21 @@ public class AuthService : IAuthService
         user.updatedAt = DateTime.UtcNow;
         await _accountsRepository.UpdateAsync(user);
         _cache.Remove(token);
+    }
+    
+    public async Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken)
+    {
+        if (!_cache.TryGetValue(refreshToken, out string email))
+            throw new Exception("Invalid or expired refresh token.");
+
+        var user = await _accountsRepository.GetByEmailAsync(email);
+        if (user == null)
+            throw new Exception("User not found.");
+        
+        var accessToken = _tokenGenerator.GenerateAccessToken(user);
+        var newRefreshToken = _tokenGenerator.GenerateAndStoreRefreshToken(email);
+        _cache.Remove(refreshToken);
+
+        return (AccessToken: accessToken, RefreshToken: newRefreshToken);
     }
 }

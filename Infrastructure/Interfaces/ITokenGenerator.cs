@@ -4,5 +4,6 @@ namespace AuthentificationService.Infrastructure.Services;
 
 public interface ITokenGenerator
 {
-    string GenerateToken(Accounts account);
+    string GenerateAccessToken(Accounts account);
+    string GenerateAndStoreRefreshToken(string email);
 }
