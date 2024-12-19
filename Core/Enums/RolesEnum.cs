@@ -1,6 +1,6 @@
 namespace AuthentificationService.Core.Enum;
 
-public enum Roles
+public enum RolesEnum
 {
     Doctor,
     Receptionist,
