@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using AuthentificationService.Core.Entities;
 using AuthentificationService.Core.Interfaces;
@@ -46,21 +47,53 @@ public class TokenGenerator : ITokenGenerator
             signingCredentials: creds
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+        return Encrypt(tokenString, _configuration["EncryptionKey"]);
     }
     
     public async Task<string> GenerateAndStoreRefreshToken(int accountId)
     {
         var refreshToken = Guid.NewGuid().ToString();
+        var encryptedToken = Encrypt(refreshToken, _configuration["EncryptionKey"]);
 
         var newRefreshToken = new RefreshTokens
         {
-            Token = refreshToken,
+            Token = encryptedToken,
             ExpiryDate = DateTime.UtcNow.AddDays(7),
             AccountId = accountId
         };
 
         await _refreshTokenRepository.AddAsync(newRefreshToken);
-        return refreshToken;
+        return encryptedToken;
+    }
+    
+    private string Encrypt(string plainText, string encryptionKey)
+    {
+        using var aes = Aes.Create();
+        aes.Key = Encoding.UTF8.GetBytes(encryptionKey);
+        aes.IV = aes.Key.Take(16).ToArray(); 
+    
+        using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+        using var ms = new MemoryStream();
+        using var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write);
+        using var sw = new StreamWriter(cs);
+        sw.Write(plainText);
+        sw.Close();
+    
+        return Convert.ToBase64String(ms.ToArray());
+    }
+    
+    private string Decrypt(string cipherText, string encryptionKey)
+    {
+        using var aes = Aes.Create();
+        aes.Key = Encoding.UTF8.GetBytes(encryptionKey);
+        aes.IV = aes.Key.Take(16).ToArray();
+
+        using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+        using var ms = new MemoryStream(Convert.FromBase64String(cipherText));
+        using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
+        using var sr = new StreamReader(cs);
+    
+        return sr.ReadToEnd();
     }
 }

@@ -118,11 +118,11 @@ public class AuthService : IAuthService
         var storedRefreshToken = await _refreshTokenRepository.GetByTokenAsync(refreshToken);
         if (storedRefreshToken == null || storedRefreshToken.ExpiryDate < DateTime.UtcNow)
             throw new Exception("Invalid or expired refresh token.");
-        
+
         var user = await _accountsRepository.GetByIdAsync(storedRefreshToken.AccountId);
         if (user == null)
             throw new Exception("User not found.");
-        
+
         var accessToken = _tokenGenerator.GenerateAccessToken(user);
         var newRefreshToken = await _tokenGenerator.GenerateAndStoreRefreshToken(user.id);
         await _refreshTokenRepository.DeleteAsync(storedRefreshToken);
