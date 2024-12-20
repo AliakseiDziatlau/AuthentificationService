@@ -67,7 +67,7 @@ public class TokenGenerator : ITokenGenerator
         return encryptedToken;
     }
     
-    private string Encrypt(string plainText, string encryptionKey)
+    public string Encrypt(string originText, string encryptionKey)
     {
         using var aes = Aes.Create();
         aes.Key = Encoding.UTF8.GetBytes(encryptionKey);
@@ -77,20 +77,20 @@ public class TokenGenerator : ITokenGenerator
         using var ms = new MemoryStream();
         using var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write);
         using var sw = new StreamWriter(cs);
-        sw.Write(plainText);
+        sw.Write(originText);
         sw.Close();
     
         return Convert.ToBase64String(ms.ToArray());
     }
     
-    private string Decrypt(string cipherText, string encryptionKey)
+    public string Decrypt(string encryptedText, string encryptionKey)
     {
         using var aes = Aes.Create();
         aes.Key = Encoding.UTF8.GetBytes(encryptionKey);
         aes.IV = aes.Key.Take(16).ToArray();
 
         using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-        using var ms = new MemoryStream(Convert.FromBase64String(cipherText));
+        using var ms = new MemoryStream(Convert.FromBase64String(encryptedText));
         using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
         using var sr = new StreamReader(cs);
     
