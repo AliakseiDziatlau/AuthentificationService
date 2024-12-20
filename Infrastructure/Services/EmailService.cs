@@ -33,7 +33,6 @@ public class EmailService : IEmailService
         };
 
         mailMessage.To.Add(to);
-
         await smtpClient.SendMailAsync(mailMessage);
     }
 }
