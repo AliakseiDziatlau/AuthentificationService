@@ -3,6 +3,7 @@ using System.Text;
 using AuthentificationService.Application.DTOs;
 using AuthentificationService.Application.Interfaces;
 using AuthentificationService.Core.Entities;
+using AuthentificationService.Core.Enum;
 using AuthentificationService.Core.Interfaces;
 using AuthentificationService.Infrastructure.Services;
 using Microsoft.Extensions.Caching.Memory;
@@ -43,19 +44,11 @@ public class AuthService : IAuthService
         if (existingUser != null)
             throw new Exception("User already exists.");
         
-        var validRoles = new[] { "Doctor", "Receptionist", "Patient" };
-        if (!validRoles.Contains(registerDTO.Role))
+        if (!Enum.TryParse(typeof(RolesEnum), registerDTO.Role, true, out var parsedRole))
             throw new Exception("Invalid role.");
         
+        var roleId = (int)(RolesEnum)parsedRole;
         var passwordHash = _passwordHasher.HashPassword(registerDTO.Password);
-        
-        var roleId = registerDTO.Role switch
-        {
-            "Doctor" => 0,
-            "Receptionist" => 1,
-            "Patient" => 2,
-            _ => throw new Exception("Invalid role.")
-        };
         
         var newUser = new Accounts
         {
