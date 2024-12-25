@@ -50,4 +50,11 @@ public class AuthController : ControllerBase
             RefreshToken = tokens.RefreshToken
         });
     }
+    
+    [HttpPost("authorize")]
+    public IActionResult Authorize([FromBody] TokenRequestDTO request)
+    {
+        var role = _authService.Authorize(request.AccessToken);
+        return Ok(new { Message = "Authorized", UserRole = role });
+    }
 }

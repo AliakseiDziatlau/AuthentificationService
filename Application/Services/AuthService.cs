@@ -122,4 +122,30 @@ public class AuthService : IAuthService
 
         return (AccessToken: accessToken, RefreshToken: newRefreshToken);
     }
+    
+    public string Authorize(string encryptedToken)
+    {
+        var decryptedToken = _tokenGenerator.Decrypt(encryptedToken, _configuration["EncryptionKey"]);
+    
+        var handler = new JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(decryptedToken);
+        
+        if (jwtToken.ValidTo < DateTime.UtcNow)
+        {
+            throw new UnauthorizedAccessException("Token has expired.");
+        }
+        
+        var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "role");
+        if (roleClaim == null || !Enum.TryParse<RolesEnum>(roleClaim.Value, out var userRole))
+        {
+            throw new UnauthorizedAccessException("Access denied. Invalid role.");
+        }
+        
+        if (userRole != RolesEnum.Receptionist)
+        {
+            throw new UnauthorizedAccessException("Access denied. User does not have the required role.");
+        }
+        
+        return userRole.ToString();
+    }
 }
