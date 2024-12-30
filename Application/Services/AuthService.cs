@@ -6,6 +6,7 @@ using AuthentificationService.Core.Entities;
 using AuthentificationService.Core.Enum;
 using AuthentificationService.Core.Interfaces;
 using AuthentificationService.Infrastructure.Services;
+using AutoMapper;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 
@@ -20,6 +21,7 @@ public class AuthService : IAuthService
     private readonly IConfiguration _configuration;
     private readonly IMemoryCache _cache;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly IMapper _mapper;
 
     public AuthService(IAccountsRepository accountsRepository,
                        ITokenGenerator tokenGenerator,
@@ -27,7 +29,8 @@ public class AuthService : IAuthService
                        IPasswordHasher passwordHasher,
                        IConfiguration configuration,
                        IMemoryCache cache,
-                       IRefreshTokenRepository refreshTokenRepository)
+                       IRefreshTokenRepository refreshTokenRepository,
+                       IMapper mapper)
     {
         _accountsRepository = accountsRepository;
         _tokenGenerator = tokenGenerator;
@@ -36,6 +39,7 @@ public class AuthService : IAuthService
         _configuration = configuration;
         _cache = cache;
         _refreshTokenRepository = refreshTokenRepository;
+        _mapper = mapper;
     }
     
     public async Task RegisterUserAsync(RegisterDTO registerDTO)
@@ -50,15 +54,9 @@ public class AuthService : IAuthService
         var roleId = (int)(RolesEnum)parsedRole;
         var passwordHash = _passwordHasher.HashPassword(registerDTO.Password);
         
-        var newUser = new Accounts
-        {
-            email = registerDTO.Email,
-            passwordHash = passwordHash,
-            phoneNumber = registerDTO.PhoneNumber,
-            isEmailVerified = false,
-            createdAt = DateTime.UtcNow,
-            RoleId = roleId 
-        };
+        var newUser = _mapper.Map<Accounts>(registerDTO);
+        newUser.passwordHash = passwordHash;
+        newUser.RoleId = roleId;
 
         await _accountsRepository.AddAsync(newUser);
         

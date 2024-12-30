@@ -17,6 +17,7 @@ builder.Configuration
     .AddJsonFile($"appsettings.{enviroment}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
+builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddScoped<IAccountsRepository, AccountsRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
