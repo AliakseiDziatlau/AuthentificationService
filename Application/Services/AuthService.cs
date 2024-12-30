@@ -124,26 +124,41 @@ public class AuthService : IAuthService
     public string Authorize(string encryptedToken)
     {
         var decryptedToken = _tokenGenerator.Decrypt(encryptedToken, _configuration["EncryptionKey"]);
-    
+
         var handler = new JwtSecurityTokenHandler();
-        var jwtToken = handler.ReadJwtToken(decryptedToken);
-        
-        if (jwtToken.ValidTo < DateTime.UtcNow)
+        var validationParameters = new TokenValidationParameters
         {
-            throw new UnauthorizedAccessException("Token has expired.");
-        }
-        
-        var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "role");
-        if (roleClaim == null || !Enum.TryParse<RolesEnum>(roleClaim.Value, out var userRole))
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = _configuration["Jwt:Issuer"],
+            ValidAudience = _configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]))
+        };
+
+        try
         {
-            throw new UnauthorizedAccessException("Access denied. Invalid role.");
+            var principal = handler.ValidateToken(decryptedToken, validationParameters, out var validatedToken);
+            if (validatedToken is not JwtSecurityToken jwtToken)
+                throw new UnauthorizedAccessException("Invalid token.");
+            
+            var roleClaim = principal.Claims.FirstOrDefault(c => c.Type == "role");
+            if (roleClaim == null || !Enum.TryParse<RolesEnum>(roleClaim.Value, out var userRole))
+            {
+                throw new UnauthorizedAccessException("Access denied. Invalid role.");
+            }
+            
+            if (userRole != RolesEnum.Receptionist)
+            {
+                throw new UnauthorizedAccessException("Access denied. User does not have the required role.");
+            }
+
+            return userRole.ToString();
         }
-        
-        if (userRole != RolesEnum.Receptionist)
+        catch (SecurityTokenException ex)
         {
-            throw new UnauthorizedAccessException("Access denied. User does not have the required role.");
+            throw new UnauthorizedAccessException($"Token validation failed: {ex.Message}");
         }
-        
-        return userRole.ToString();
     }
 }
