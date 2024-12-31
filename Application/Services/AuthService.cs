@@ -60,8 +60,6 @@ public class AuthService : IAuthService
             _logger.LogWarning("Invalid role provided: {Role}", registerDTO.Role);
             throw new Exception("Invalid role.");
         }
-
-        
         
         var roleId = (int)(RolesEnum)parsedRole;
         var passwordHash = _passwordHasher.HashPassword(registerDTO.Password);
@@ -118,9 +116,7 @@ public class AuthService : IAuthService
             _logger.LogWarning("Invalid or expired confirmation token for email: {Email}", email);
             throw new Exception("Invalid or expired token.");
         }
-
-
-
+        
         if (cachedEmail != email)
         {
             _logger.LogWarning("Token email mismatch for email: {Email}", email);
@@ -157,9 +153,7 @@ public class AuthService : IAuthService
             _logger.LogError("User not found for refresh token: {RefreshToken}", refreshToken);
             throw new Exception("User not found.");
         }
-
         
-
         var accessToken = _tokenGenerator.GenerateAccessToken(user);
         var newRefreshToken = await _tokenGenerator.GenerateAndStoreRefreshToken(user.id);
         await _refreshTokenRepository.DeleteAsync(storedRefreshToken);
