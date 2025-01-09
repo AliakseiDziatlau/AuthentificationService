@@ -76,9 +76,11 @@ public class AuthService : IAuthService
         
         var authentificationServicePath = _configuration["AuthentificationServicePath"];
         var confirmationLink = $"{authentificationServicePath}/api/auth/confirm-email?token={token}&email={registerDTO.Email}";
+        var subject = _configuration["EmailSettings:ConfirmEmailSubject"];
+        var bodyTemplate = _configuration["EmailSettings:ConfirmEmailBody"];
+        var body = string.Format(bodyTemplate, confirmationLink);
         
-        await _emailService.SendEmailAsync(registerDTO.Email, "Confirm Your Email", 
-            $"Please confirm your email by clicking on the link: <a href='{confirmationLink}'>{confirmationLink}</a>");
+        await _emailService.SendEmailAsync(registerDTO.Email, subject, body);
         
         _logger.LogInformation("Confirmation email sent to: {Email}", registerDTO.Email);
     }
