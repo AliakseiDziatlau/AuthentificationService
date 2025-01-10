@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using AuthentificationService.Application.DTOs;
 using AuthentificationService.Application.Interfaces;
@@ -75,7 +76,7 @@ public class AuthService : IAuthService
         _cache.Set(token, registerDTO.Email, TimeSpan.FromHours(24));
         
         var authentificationServicePath = _configuration["AuthentificationServicePath"];
-        var confirmationLink = $"{authentificationServicePath}/api/auth/confirm-email?token={token}&email={registerDTO.Email}";
+        var confirmationLink = $"{authentificationServicePath}/api/auths/confirm-email?token={token}&email={registerDTO.Email}";
         var subject = _configuration["EmailSettings:ConfirmEmailSubject"];
         var bodyTemplate = _configuration["EmailSettings:ConfirmEmailBody"];
         var body = string.Format(bodyTemplate, confirmationLink);
@@ -190,8 +191,8 @@ public class AuthService : IAuthService
                 _logger.LogWarning("Invalid token format.");
                 throw new UnauthorizedAccessException("Invalid token.");
             }
-            
-            var roleClaim = principal.Claims.FirstOrDefault(c => c.Type == "role");
+            var roleClaim = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
+            // var roleClaim = principal.Claims.FirstOrDefault(c => c.Type == "role");
             if (roleClaim == null)
             {
                 _logger.LogWarning("Role claim missing in token.");
