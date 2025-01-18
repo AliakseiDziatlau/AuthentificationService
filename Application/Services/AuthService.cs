@@ -6,6 +6,7 @@ using AuthentificationService.Application.Interfaces;
 using AuthentificationService.Core.Entities;
 using AuthentificationService.Core.Enum;
 using AuthentificationService.Core.Interfaces;
+using AuthentificationService.Infrastructure.Events;
 using AuthentificationService.Infrastructure.Services;
 using AutoMapper;
 using Microsoft.Extensions.Caching.Memory;
@@ -24,6 +25,7 @@ public class AuthService : IAuthService
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<AuthService> _logger;
+    private readonly EventPublisher _publisher;
 
     public AuthService(IAccountsRepository accountsRepository,
                        ITokenGenerator tokenGenerator,
@@ -33,7 +35,8 @@ public class AuthService : IAuthService
                        IMemoryCache cache,
                        IRefreshTokenRepository refreshTokenRepository,
                        IMapper mapper,
-                       ILogger<AuthService> logger)
+                       ILogger<AuthService> logger,
+                       EventPublisher publisher)
     {
         _accountsRepository = accountsRepository;
         _tokenGenerator = tokenGenerator;
@@ -44,6 +47,7 @@ public class AuthService : IAuthService
         _refreshTokenRepository = refreshTokenRepository;
         _mapper = mapper;
         _logger = logger;
+        _publisher = publisher;
     }
     
     public async Task RegisterUserAsync(RegisterDTO registerDTO)
@@ -192,7 +196,6 @@ public class AuthService : IAuthService
                 throw new UnauthorizedAccessException("Invalid token.");
             }
             var roleClaim = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
-            // var roleClaim = principal.Claims.FirstOrDefault(c => c.Type == "role");
             if (roleClaim == null)
             {
                 _logger.LogWarning("Role claim missing in token.");
@@ -221,5 +224,46 @@ public class AuthService : IAuthService
             _logger.LogError(ex, "Token validation failed.");
             throw new UnauthorizedAccessException($"Token validation failed: {ex.Message}");
         }
+    }
+    
+    public async Task UpdateUserAsync(int id, UpdateUserDTO updateUserDto)
+    {
+        var user = await _accountsRepository.GetByIdAsync(id);
+        if (user == null)
+            throw new Exception("User not found");
+
+        bool isPhoneNumberUpdated = false;
+
+        if (!string.IsNullOrEmpty(updateUserDto.Email))
+            user.email = updateUserDto.Email;
+
+        if (!string.IsNullOrEmpty(updateUserDto.PhoneNumber) && user.phoneNumber != updateUserDto.PhoneNumber)
+        {
+            user.phoneNumber = updateUserDto.PhoneNumber;
+            isPhoneNumberUpdated = true;
+        }
+
+        user.updatedAt = DateTime.UtcNow;
+
+        await _accountsRepository.UpdateAsync(user);
+
+        if (isPhoneNumberUpdated)
+        {
+            var phoneNumberChangedEvent = new PhoneNumberChangedEvent
+            {
+                UserEmail = user.email,
+                NewPhoneNumber = updateUserDto.PhoneNumber,
+                Timestamp = DateTime.UtcNow,
+                RoleId = user.RoleId,
+            };
+
+            _publisher.PublishPhoneNumberChangedEvent(phoneNumberChangedEvent);
+        }
+    }
+    
+    public async Task<IEnumerable<AccountsDTO>> GetAllAccountsAsync()
+    {
+        var accounts = await _accountsRepository.GetAllAsync();
+        return _mapper.Map<IEnumerable<AccountsDTO>>(accounts);
     }
 }

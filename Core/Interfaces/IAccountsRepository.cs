@@ -9,4 +9,5 @@ public interface IAccountsRepository
     Task AddAsync(Accounts account);
     Task UpdateAsync(Accounts account);
     Task DeleteAsync(int id);
+    Task<IEnumerable<Accounts>> GetAllAsync();
 }

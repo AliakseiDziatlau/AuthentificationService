@@ -57,4 +57,18 @@ public class AuthsController : ControllerBase
         var role = _authService.Authorize(request.AccessToken);
         return Ok(new { Message = "Authorized", UserRole = role });
     }
+    
+    [HttpPut("update-user/{id}")]
+    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDTO updateUserDto)
+    {
+        await _authService.UpdateUserAsync(id, updateUserDto);
+        return Ok(new { Message = "User updated successfully." });
+    }
+    
+    [HttpGet("get-all")]
+    public async Task<IActionResult> GetAllAccounts()
+    {
+        var accounts = await _authService.GetAllAccountsAsync();
+        return Ok(accounts);
+    }
 }
