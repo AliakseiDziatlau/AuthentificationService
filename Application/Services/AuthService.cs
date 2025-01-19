@@ -266,4 +266,9 @@ public class AuthService : IAuthService
         var accounts = await _accountsRepository.GetAllAsync();
         return _mapper.Map<IEnumerable<AccountsDTO>>(accounts);
     }
+
+    public async Task<bool> CheckEmailExistsAsync(string email)
+    {
+        return await _accountsRepository.CheckEmailExistsAsync(email);
+    }
 }

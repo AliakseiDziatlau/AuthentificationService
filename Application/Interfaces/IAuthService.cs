@@ -11,4 +11,5 @@ public interface IAuthService
     string Authorize(string encryptedToken);
     Task UpdateUserAsync(int id, UpdateUserDTO updateUserDto);
     Task<IEnumerable<AccountsDTO>> GetAllAccountsAsync();
+    Task<bool> CheckEmailExistsAsync(string email);
 }

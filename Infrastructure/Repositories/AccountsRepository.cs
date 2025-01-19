@@ -50,4 +50,9 @@ public class AccountsRepository : IAccountsRepository
     {
         return await _context.Accounts.ToListAsync();
     }
+
+    public async Task<bool> CheckEmailExistsAsync(string email)
+    {
+        return await _context.Accounts.AnyAsync(a => a.email == email);
+    }
 }

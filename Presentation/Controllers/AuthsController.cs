@@ -71,4 +71,11 @@ public class AuthsController : ControllerBase
         var accounts = await _authService.GetAllAccountsAsync();
         return Ok(accounts);
     }
+
+    [HttpGet("check-email")]
+    public async Task<IActionResult> CheckEmail([FromQuery] string email)
+    {
+        bool emailExists = await _authService.CheckEmailExistsAsync(email);
+        return Ok(new { EmailExists = emailExists });
+    }
 }

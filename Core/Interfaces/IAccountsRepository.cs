@@ -10,4 +10,5 @@ public interface IAccountsRepository
     Task UpdateAsync(Accounts account);
     Task DeleteAsync(int id);
     Task<IEnumerable<Accounts>> GetAllAsync();
+    Task<bool> CheckEmailExistsAsync(string email);
 }
