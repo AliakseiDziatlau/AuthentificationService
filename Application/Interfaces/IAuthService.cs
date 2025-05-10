@@ -9,4 +9,7 @@ public interface IAuthService
     Task ConfirmEmailAsync(string token, string email);
     Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken);
     string Authorize(string encryptedToken);
+    Task UpdateUserAsync(int id, UpdateUserDTO updateUserDto);
+    Task<IEnumerable<AccountsDTO>> GetAllAccountsAsync();
+    Task<bool> CheckEmailExistsAsync(string email);
 }

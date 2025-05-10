@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using AuthentificationService.Core.Entities;
+using AuthentificationService.Core.Enum;
 using AuthentificationService.Core.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
@@ -24,18 +25,15 @@ public class TokenGenerator : ITokenGenerator
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        
+        var roleName = Enum.GetName(typeof(RolesEnum), account.RoleId) ?? "Unknown";
 
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, account.email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("role", account.RoleId switch
-            {
-                0 => "Doctor",
-                1 => "Receptionist",
-                2 => "Patient",
-                _ => "Unknown"
-            }),
+            new Claim("role", roleName),
+            new Claim(ClaimTypes.Role, roleName),
             new Claim("email-confirmation", "true") 
         };
 

@@ -45,4 +45,14 @@ public class AccountsRepository : IAccountsRepository
             await _context.SaveChangesAsync();
         }
     }
+    
+    public async Task<IEnumerable<Accounts>> GetAllAsync()
+    {
+        return await _context.Accounts.ToListAsync();
+    }
+
+    public async Task<bool> CheckEmailExistsAsync(string email)
+    {
+        return await _context.Accounts.AnyAsync(a => a.email == email);
+    }
 }

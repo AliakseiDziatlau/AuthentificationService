@@ -1,91 +1,31 @@
-using System.Text;
-using AuthentificationService.Application.Interfaces;
-using AuthentificationService.Application.Services;
-using AuthentificationService.Core.Interfaces;
-using AuthentificationService.Infrastructure.Persistence;
-using AuthentificationService.Infrastructure.Repositories;
+using AuthentificationService.Application.Configurations;
 using AuthentificationService.Infrastructure.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
-var enviroment = builder.Environment.EnvironmentName;
 
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .CreateLogger();
+builder.Configuration.AddCustomConfiguration(builder.Environment);
+builder.ConfigureLogging();
 
-builder.Host.UseSerilog();
+builder.Services.ConfigureDatabase(builder.Configuration);
+builder.Services.ConfigureServices();
+builder.Services.AddJwtAuthorization(builder.Configuration);
+builder.Services.AddMiddlearesAndSwagger();
 
-builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{enviroment}.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables();
-
-builder.Services.AddAutoMapper(typeof(Program));
-builder.Services.AddScoped<IAccountsRepository, AccountsRepository>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-builder.Services.AddScoped<ITokenGenerator, TokenGenerator>();
-builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-
-
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-builder.Services.AddControllers();
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
-
-
-var secretKey = builder.Configuration["Jwt:SecretKey"];
-var issuer = builder.Configuration["Jwt:Issuer"];
-var audience = builder.Configuration["Jwt:Audience"];
-
-builder.Services.AddMemoryCache();
-builder.Services.AddAuthentication(options =>
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = issuer,
-            ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
-        };
+        policy.AllowAnyOrigin()   
+            .AllowAnyMethod()    
+            .AllowAnyHeader();  
     });
+});
 
-builder.Services.AddSwaggerGen();
+builder.Services.AddEventPublisher();
 
 var app = builder.Build();
-
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"); 
-    });
-}
-
-app.UseSerilogRequestLogging();
-app.UseHttpsRedirection();
-app.UseRouting();
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
+app.AddSwagger();
+app.UseCors("AllowAll");
+app.AddMiddlewares();
 app.Run();
 

@@ -6,11 +6,11 @@ namespace AuthentificationService.Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthsController : ControllerBase
 {
     private readonly IAuthService _authService;
 
-    public AuthController(IAuthService authService)
+    public AuthsController(IAuthService authService)
     {
         _authService = authService;
     }
@@ -56,5 +56,26 @@ public class AuthController : ControllerBase
     {
         var role = _authService.Authorize(request.AccessToken);
         return Ok(new { Message = "Authorized", UserRole = role });
+    }
+    
+    [HttpPut("update-user/{id}")]
+    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDTO updateUserDto)
+    {
+        await _authService.UpdateUserAsync(id, updateUserDto);
+        return Ok(new { Message = "User updated successfully." });
+    }
+    
+    [HttpGet("get-all")]
+    public async Task<IActionResult> GetAllAccounts()
+    {
+        var accounts = await _authService.GetAllAccountsAsync();
+        return Ok(accounts);
+    }
+
+    [HttpGet("check-email")]
+    public async Task<IActionResult> CheckEmail([FromQuery] string email)
+    {
+        bool emailExists = await _authService.CheckEmailExistsAsync(email);
+        return Ok(new { EmailExists = emailExists });
     }
 }
